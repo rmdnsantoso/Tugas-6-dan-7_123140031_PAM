@@ -1,20 +1,23 @@
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
+    id("app.cash.sqldelight") version "2.0.1"
 }
 
 kotlin {
     androidTarget {
-        compilerOptions {
-            jvmTarget.set(JvmTarget.JVM_11)
+        compilations.all {
+            kotlinOptions {
+                jvmTarget = "11"
+
+            }
         }
     }
-    
+
     listOf(
         iosArm64(),
         iosSimulatorArm64()
@@ -24,12 +27,22 @@ kotlin {
             isStatic = true
         }
     }
-    
+
+    val ktorVersion = "2.3.11"
+
     sourceSets {
         androidMain.dependencies {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.androidx.activity.compose)
+            implementation("app.cash.sqldelight:android-driver:2.0.1")
+            implementation("io.ktor:ktor-client-android:${ktorVersion}")
         }
+
+        iosMain.dependencies {
+            implementation("app.cash.sqldelight:native-driver:2.0.1")
+            implementation("io.ktor:ktor-client-darwin:${ktorVersion}")
+        }
+
         commonMain.dependencies {
             implementation(libs.compose.runtime)
             implementation(libs.compose.foundation)
@@ -39,11 +52,15 @@ kotlin {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
-
             implementation("org.jetbrains.androidx.navigation:navigation-compose:2.7.0-alpha07")
             implementation("org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-compose:2.8.0")
-
             implementation(compose.materialIconsExtended)
+            implementation("app.cash.sqldelight:runtime:2.0.1")
+            implementation("app.cash.sqldelight:coroutines-extensions:2.0.1")
+            implementation("com.russhwolf:multiplatform-settings:1.1.1")
+            implementation("com.russhwolf:multiplatform-settings-coroutines:1.1.1")
+            implementation("com.russhwolf:multiplatform-settings-no-arg:1.1.1")
+            implementation("io.ktor:ktor-client-core:${ktorVersion}")
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
@@ -82,3 +99,10 @@ dependencies {
     debugImplementation(libs.compose.uiTooling)
 }
 
+sqldelight {
+    databases {
+        create("NotesDatabase") {
+            packageName.set("pam.tugas5.romadhon.database")
+        }
+    }
+}

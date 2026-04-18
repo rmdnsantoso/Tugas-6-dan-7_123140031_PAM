@@ -8,15 +8,22 @@ import androidx.compose.ui.graphics.vector.ImageVector
 
 sealed class Screen(val route: String) {
     object NoteList : Screen("note_list")
+
     object NoteDetail : Screen("note_detail/{noteId}") {
-        fun createRoute(noteId: Int) = "note_detail/$noteId"
+        // Ubah tipe parameter dari Int menjadi Long
+        fun createRoute(noteId: Long) = "note_detail/$noteId"
     }
 
     object AddNote : Screen("add_note")
+
     object EditNote : Screen("edit_note/{noteId}") {
-        fun createRoute(noteId: Int) = "edit_note/$noteId"
+        // Ubah tipe parameter dari Int menjadi Long
+        fun createRoute(noteId: Long) = "edit_note/$noteId"
     }
+
+    object Settings : Screen("settings")
 }
+
 sealed class BottomNavItem(
     val route: String,
     val icon: ImageVector,

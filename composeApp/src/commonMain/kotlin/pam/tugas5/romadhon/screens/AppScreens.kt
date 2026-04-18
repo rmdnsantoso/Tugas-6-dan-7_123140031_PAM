@@ -21,63 +21,82 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
 import tugas5_pam_123140031.composeapp.generated.resources.Res
 import tugas5_pam_123140031.composeapp.generated.resources.foto_romadhon
+import pam.tugas5.romadhon.database.NoteEntity
+import pam.tugas5.romadhon.database.SettingsManager
 
 val TemaHijau = Color(0xFF2E7D32)
-
-data class Note(val id: Int, val title: String, val content: String, val date: String, val color: Color)
-
-val dummyNotes = listOf(
-    Note(1, "Proyek S.I.G.M.A", "Rencana pengembangan bel sekolah otomatis untuk KKN di Desa Bandarejo. Perlu cek modul suara.", "15 Feb 2026", Color(0xFFE8F5E9)),
-    Note(2, "Update BUMH HMIF", "Evaluasi pre-order 126 Jaket Himpunan. Omzet tembus 25jt+, lanjut proyek merchandise.", "10 Mar 2026", Color(0xFFC8E6C9)),
-    Note(3, "UI/UX Academora", "Target skor SUS naik ke 90. Perbaiki alur navigasi di bagian dashboard utama.", "05 Apr 2026", Color(0xFFA5D6A7)),
-    Note(4, "Go-Wes ITERA", "Maintenance backend Node.js untuk fitur rental sepeda di lingkungan kampus.", "12 Apr 2026", Color(0xFFC8E6C9))
-)
-
-val favoriteNoteIds = mutableStateListOf<Int>()
+val CardColors = listOf(0xFFE8F5E9, 0xFFC8E6C9, 0xFFA5D6A7, 0xFF81C784)
 
 @Composable
 fun NoteListScreen(
-    onNavigateToDetail: (Int) -> Unit,
+    viewModel: NotesViewModel,
+    currentSortOrder: String,
+    onNavigateToDetail: (Long) -> Unit,
     onNavigateToAdd: () -> Unit
 ) {
-    var searchQuery by remember { mutableStateOf("") }
+    val rawNotes by viewModel.notes.collectAsState()
+    val searchQuery by viewModel.searchQuery.collectAsState()
+    val isSyncing by viewModel.isSyncing.collectAsState()
+    val sortedNotes = when (currentSortOrder) {
+        "Terlama" -> rawNotes.sortedBy { it.id }
+        "A-Z" -> rawNotes.sortedBy { it.title.lowercase() }
+        else -> rawNotes.sortedByDescending { it.id }
+    }
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         floatingActionButton = {
             FloatingActionButton(
                 onClick = onNavigateToAdd,
                 containerColor = TemaHijau,
                 contentColor = Color.White
             ) {
-                Icon(Icons.Filled.Add, contentDescription = "Tambah")
+                Icon(Icons.Filled.Add, contentDescription = null)
             }
         }
     ) { padding ->
-        Column(modifier = Modifier.fillMaxSize().padding(padding).background(Color(0xFFF5F5F5))) {
-            Text(
-                text = "Catatan Romadhon",
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Bold,
-                color = TemaHijau,
-                modifier = Modifier.padding(start = 20.dp, top = 20.dp, bottom = 8.dp)
-            )
+        Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(start = 20.dp, top = 20.dp, bottom = 8.dp, end = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "Catatan Romadhon",
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TemaHijau
+                )
+
+                IconButton(
+                    onClick = { viewModel.syncNotesFromApi() },
+                    enabled = !isSyncing
+                ) {
+                    if (isSyncing) {
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp), color = TemaHijau)
+                    } else {
+                        Icon(Icons.Filled.Refresh, contentDescription = null, tint = TemaHijau)
+                    }
+                }
+            }
 
             OutlinedTextField(
                 value = searchQuery,
-                onValueChange = { searchQuery = it },
-                placeholder = { Text("Cari catatan kamu...") },
+                onValueChange = { viewModel.updateSearchQuery(it) },
+                placeholder = { Text("Cari catatan kamu...", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)) },
                 leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null, tint = TemaHijau) },
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
                 shape = RoundedCornerShape(24.dp),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = Color.White,
-                    unfocusedContainerColor = Color.White,
-                    focusedBorderColor = TemaHijau
+                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                    focusedBorderColor = TemaHijau,
+                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                 ),
                 singleLine = true
             )
@@ -86,15 +105,13 @@ fun NoteListScreen(
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                val filteredNotes = dummyNotes.filter { it.title.contains(searchQuery, ignoreCase = true) }
-
-                items(filteredNotes) { note ->
-                    val isFavorite = favoriteNoteIds.contains(note.id)
+                items(sortedNotes) { note ->
+                    val isFavorite = note.is_favorite == 1L
 
                     Card(
                         modifier = Modifier.fillMaxWidth().clickable { onNavigateToDetail(note.id) },
                         elevation = CardDefaults.cardElevation(2.dp),
-                        colors = CardDefaults.cardColors(containerColor = note.color)
+                        colors = CardDefaults.cardColors(containerColor = Color(note.color.toInt()))
                     ) {
                         Row(
                             modifier = Modifier.padding(16.dp).fillMaxWidth(),
@@ -108,10 +125,7 @@ fun NoteListScreen(
                                 Text(text = note.date, fontSize = 12.sp, color = TemaHijau)
                             }
                             IconButton(
-                                onClick = {
-                                    if (isFavorite) favoriteNoteIds.remove(note.id)
-                                    else favoriteNoteIds.add(note.id)
-                                }
+                                onClick = { viewModel.toggleFavorite(note.id, note.is_favorite) }
                             ) {
                                 Icon(
                                     imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
@@ -128,10 +142,10 @@ fun NoteListScreen(
 }
 
 @Composable
-fun FavoritesScreen() {
-    val favoriteNotes = dummyNotes.filter { favoriteNoteIds.contains(it.id) }
+fun FavoritesScreen(viewModel: NotesViewModel) {
+    val favoriteNotes by viewModel.favoriteNotes.collectAsState()
 
-    Column(modifier = Modifier.fillMaxSize().background(Color(0xFFF5F5F5))) {
+    Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         Text(
             text = "Koleksi Favorit",
             fontSize = 28.sp,
@@ -143,9 +157,9 @@ fun FavoritesScreen() {
         if (favoriteNotes.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize().weight(1f), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Filled.FavoriteBorder, contentDescription = null, tint = Color.LightGray, modifier = Modifier.size(80.dp))
+                    Icon(Icons.Filled.FavoriteBorder, contentDescription = null, tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.3f), modifier = Modifier.size(80.dp))
                     Spacer(modifier = Modifier.height(16.dp))
-                    Text("Belum ada favorit nih", color = Color.Gray, fontSize = 18.sp)
+                    Text("Belum ada favorit nih", color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f), fontSize = 18.sp)
                 }
             }
         } else {
@@ -156,15 +170,15 @@ fun FavoritesScreen() {
                 items(favoriteNotes) { note ->
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = note.color)
+                        colors = CardDefaults.cardColors(containerColor = Color(note.color.toInt()))
                     ) {
                         Row(modifier = Modifier.padding(16.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(text = note.title, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Color(0xFF1B5E20))
                                 Spacer(modifier = Modifier.height(4.dp))
-                                Text(text = note.content, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                Text(text = note.content, maxLines = 1, overflow = TextOverflow.Ellipsis, color = Color.DarkGray)
                             }
-                            IconButton(onClick = { favoriteNoteIds.remove(note.id) }) {
+                            IconButton(onClick = { viewModel.toggleFavorite(note.id, note.is_favorite) }) {
                                 Icon(Icons.Filled.Favorite, contentDescription = null, tint = Color.Red)
                             }
                         }
@@ -178,7 +192,7 @@ fun FavoritesScreen() {
 @Composable
 fun ProfileScreen() {
     Column(
-        modifier = Modifier.fillMaxSize().background(Color.White).padding(24.dp),
+        modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Spacer(modifier = Modifier.height(32.dp))
@@ -188,7 +202,7 @@ fun ProfileScreen() {
         ) {
             Image(
                 painter = painterResource(Res.drawable.foto_romadhon),
-                contentDescription = "Muhammad Romadhon Santoso",
+                contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize()
             )
@@ -196,7 +210,7 @@ fun ProfileScreen() {
 
         Spacer(modifier = Modifier.height(16.dp))
         Text("M. Romadhon Santoso", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = TemaHijau)
-        Text("123140031 | Teknik Informatika ITERA", color = Color.Gray)
+        Text("123140031 | Teknik Informatika ITERA", color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f))
 
         Spacer(modifier = Modifier.height(32.dp))
         HorizontalDivider(color = TemaHijau.copy(alpha = 0.2f))
@@ -213,17 +227,19 @@ fun ProfileInfoRow(icon: androidx.compose.ui.graphics.vector.ImageVector, text: 
     Row(modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
         Icon(icon, contentDescription = null, tint = TemaHijau, modifier = Modifier.size(20.dp))
         Spacer(modifier = Modifier.width(16.dp))
-        Text(text, fontSize = 15.sp)
+        Text(text, fontSize = 15.sp, color = MaterialTheme.colorScheme.onBackground)
     }
 }
 
-// ==========================================
-// 2. LAYAR DETAIL & FORM
-// ==========================================
-
 @Composable
-fun NoteDetailScreen(noteId: Int, onNavigateToEdit: (Int) -> Unit, onBack: () -> Unit) {
-    val note = dummyNotes.find { it.id == noteId } ?: dummyNotes[0]
+fun NoteDetailScreen(noteId: Long, viewModel: NotesViewModel, onNavigateToEdit: (Long) -> Unit, onBack: () -> Unit) {
+    val notes by viewModel.notes.collectAsState()
+    val note = notes.find { it.id == noteId }
+
+    if (note == null) {
+        onBack()
+        return
+    }
 
     Scaffold(
         topBar = {
@@ -231,12 +247,15 @@ fun NoteDetailScreen(noteId: Int, onNavigateToEdit: (Int) -> Unit, onBack: () ->
             TopAppBar(
                 title = { Text("Detail", color = Color(0xFF1B5E20)) },
                 navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.Filled.ArrowBack, null, tint = Color(0xFF1B5E20)) } },
-                actions = { IconButton(onClick = { onNavigateToEdit(noteId) }) { Icon(Icons.Filled.Edit, null, tint = Color(0xFF1B5E20)) } },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = note.color)
+                actions = {
+                    IconButton(onClick = { viewModel.deleteNote(noteId); onBack() }) { Icon(Icons.Filled.Delete, null, tint = Color.Red) }
+                    IconButton(onClick = { onNavigateToEdit(noteId) }) { Icon(Icons.Filled.Edit, null, tint = Color(0xFF1B5E20)) }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(note.color.toInt()))
             )
         }
     ) { padding ->
-        Column(modifier = Modifier.fillMaxSize().background(note.color).padding(padding).padding(20.dp)) {
+        Column(modifier = Modifier.fillMaxSize().background(Color(note.color.toInt())).padding(padding).padding(20.dp)) {
             Text(text = note.title, fontSize = 26.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1B5E20))
             Text(text = note.date, color = TemaHijau, fontSize = 14.sp)
             Spacer(modifier = Modifier.height(24.dp))
@@ -246,13 +265,12 @@ fun NoteDetailScreen(noteId: Int, onNavigateToEdit: (Int) -> Unit, onBack: () ->
 }
 
 @Composable
-fun AddNoteScreen(onBack: () -> Unit) {
+fun AddNoteScreen(viewModel: NotesViewModel, onBack: () -> Unit) {
     var title by remember { mutableStateOf("") }
     var content by remember { mutableStateOf("") }
-    var isLoading by remember { mutableStateOf(false) }
-    val scope = rememberCoroutineScope()
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             @OptIn(ExperimentalMaterial3Api::class)
             TopAppBar(
@@ -267,38 +285,52 @@ fun AddNoteScreen(onBack: () -> Unit) {
                 value = title, onValueChange = { title = it },
                 label = { Text("Judul") },
                 modifier = Modifier.fillMaxWidth(),
-                colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = TemaHijau, focusedLabelColor = TemaHijau)
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = TemaHijau,
+                    focusedLabelColor = TemaHijau,
+                    focusedTextColor = MaterialTheme.colorScheme.onBackground,
+                    unfocusedTextColor = MaterialTheme.colorScheme.onBackground
+                )
             )
             Spacer(modifier = Modifier.height(16.dp))
             OutlinedTextField(
                 value = content, onValueChange = { content = it },
                 label = { Text("Isi") },
                 modifier = Modifier.fillMaxWidth().weight(1f),
-                colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = TemaHijau, focusedLabelColor = TemaHijau)
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = TemaHijau,
+                    focusedLabelColor = TemaHijau,
+                    focusedTextColor = MaterialTheme.colorScheme.onBackground,
+                    unfocusedTextColor = MaterialTheme.colorScheme.onBackground
+                )
             )
             Spacer(modifier = Modifier.height(16.dp))
             Button(
-                onClick = { scope.launch { isLoading = true; delay(1000); onBack() } },
+                onClick = {
+                    val randomColor = CardColors.random()
+                    viewModel.addNote(title, content, "April 2026", randomColor)
+                    onBack()
+                },
                 modifier = Modifier.fillMaxWidth().height(50.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = TemaHijau),
-                enabled = !isLoading
+                enabled = title.isNotBlank() && content.isNotBlank()
             ) {
-                if (isLoading) CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
-                else Text("Simpan", color = Color.White)
+                Text("Simpan", color = Color.White)
             }
         }
     }
 }
 
 @Composable
-fun EditNoteScreen(noteId: Int, onBack: () -> Unit) {
-    val note = dummyNotes.find { it.id == noteId }
+fun EditNoteScreen(noteId: Long, viewModel: NotesViewModel, onBack: () -> Unit) {
+    val notes by viewModel.notes.collectAsState()
+    val note = notes.find { it.id == noteId }
+
     var title by remember { mutableStateOf(note?.title ?: "") }
     var content by remember { mutableStateOf(note?.content ?: "") }
-    var isLoading by remember { mutableStateOf(false) }
-    val scope = rememberCoroutineScope()
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             @OptIn(ExperimentalMaterial3Api::class)
             TopAppBar(
@@ -313,24 +345,109 @@ fun EditNoteScreen(noteId: Int, onBack: () -> Unit) {
                 value = title, onValueChange = { title = it },
                 label = { Text("Judul") },
                 modifier = Modifier.fillMaxWidth(),
-                colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = TemaHijau, focusedLabelColor = TemaHijau)
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = TemaHijau,
+                    focusedLabelColor = TemaHijau,
+                    focusedTextColor = MaterialTheme.colorScheme.onBackground,
+                    unfocusedTextColor = MaterialTheme.colorScheme.onBackground
+                )
             )
             Spacer(modifier = Modifier.height(16.dp))
             OutlinedTextField(
                 value = content, onValueChange = { content = it },
                 label = { Text("Isi") },
                 modifier = Modifier.fillMaxWidth().weight(1f),
-                colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = TemaHijau, focusedLabelColor = TemaHijau)
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = TemaHijau,
+                    focusedLabelColor = TemaHijau,
+                    focusedTextColor = MaterialTheme.colorScheme.onBackground,
+                    unfocusedTextColor = MaterialTheme.colorScheme.onBackground
+                )
             )
             Spacer(modifier = Modifier.height(16.dp))
             Button(
-                onClick = { scope.launch { isLoading = true; delay(1000); onBack() } },
+                onClick = {
+                    viewModel.updateNote(noteId, title, content)
+                    onBack()
+                },
                 modifier = Modifier.fillMaxWidth().height(50.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = TemaHijau),
-                enabled = !isLoading
+                enabled = title.isNotBlank() && content.isNotBlank()
             ) {
-                if (isLoading) CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
-                else Text("Update", color = Color.White)
+                Text("Update", color = Color.White)
+            }
+        }
+    }
+}
+
+@Composable
+fun SettingsScreen(
+    settingsManager: SettingsManager,
+    onThemeChanged: (String) -> Unit, // Tambahan parameter dari App.kt
+    onSortChanged: (String) -> Unit,  // Tambahan parameter dari App.kt
+    onBack: () -> Unit
+) {
+    var selectedTheme by remember { mutableStateOf(settingsManager.theme) }
+    var selectedSort by remember { mutableStateOf(settingsManager.sortOrder) }
+
+    Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
+        topBar = {
+            @OptIn(ExperimentalMaterial3Api::class)
+            TopAppBar(
+                title = { Text("Pengaturan", color = Color.White) },
+                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.Filled.ArrowBack, null, tint = Color.White) } },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = TemaHijau)
+            )
+        }
+    ) { padding ->
+        Column(modifier = Modifier.padding(padding).padding(16.dp).fillMaxSize()) {
+            Text("Tema Aplikasi", fontWeight = FontWeight.Bold, color = TemaHijau)
+            listOf("Light", "Dark", "System").forEach { theme ->
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth().clickable {
+                        selectedTheme = theme
+                        settingsManager.theme = theme
+                        onThemeChanged(theme) // Langsung beri tahu layar utama!
+                    }.padding(vertical = 8.dp)
+                ) {
+                    RadioButton(
+                        selected = (selectedTheme == theme),
+                        onClick = {
+                            selectedTheme = theme
+                            settingsManager.theme = theme
+                            onThemeChanged(theme) // Langsung beri tahu layar utama!
+                        },
+                        colors = RadioButtonDefaults.colors(selectedColor = TemaHijau)
+                    )
+                    Text(theme, color = MaterialTheme.colorScheme.onBackground)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Text("Urutan Catatan", fontWeight = FontWeight.Bold, color = TemaHijau)
+            listOf("Terbaru", "Terlama", "A-Z").forEach { sort ->
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth().clickable {
+                        selectedSort = sort
+                        settingsManager.sortOrder = sort
+                        onSortChanged(sort) // Langsung urutkan layar utama!
+                    }.padding(vertical = 8.dp)
+                ) {
+                    RadioButton(
+                        selected = (selectedSort == sort),
+                        onClick = {
+                            selectedSort = sort
+                            settingsManager.sortOrder = sort
+                            onSortChanged(sort) // Langsung urutkan layar utama!
+                        },
+                        colors = RadioButtonDefaults.colors(selectedColor = TemaHijau)
+                    )
+                    Text(sort, color = MaterialTheme.colorScheme.onBackground)
+                }
             }
         }
     }
