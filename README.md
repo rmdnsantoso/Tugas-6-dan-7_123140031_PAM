@@ -21,12 +21,19 @@ Aplikasi World in Bytes ini dibuat untuk menampilkan berita teknologi terbaru se
 * **Navigation:** Transisi mulus dari layar daftar berita menuju layar detail artikel menggunakan parameter ID/Objek.
 * **Pull-to-Refresh:** Fungsi pembaruan data secara manual oleh pengguna.
 
+## API yang Digunakan
+Aplikasi World in Bytes ini menggunakan public API dari **NewsAPI** untuk mendapatkan data berita terbaru secara *real-time*.
+
+* **Nama API:** NewsAPI
+* **Website:** [https://newsapi.org](https://newsapi.org)
+* **Endpoint yang digunakan:** `/v2/top-headlines` (Kategori: Technology, Negara: US)
+
 ## Dokumentasi Antarmuka
 
 Berikut adalah tampilan antarmuka aplikasi saat berhasil menarik data dari internet:
 
 ![Screenshot Halaman Utama](layar%20utama.png)
 
-![Screenshot Aplikasi saat Scrolling](scrolling.png)
+![Screenshot Aplikasi Loading](loading.png)
 
-![Screenshot Detail Berita](detail.png)
+![Screenshot Error](errorpage.png)
