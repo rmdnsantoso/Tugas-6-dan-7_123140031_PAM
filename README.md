@@ -37,3 +37,6 @@ Berikut adalah tampilan antarmuka aplikasi saat berhasil menarik data dari inter
 ![Screenshot Aplikasi Loading](loading.png)
 
 ![Screenshot Error](errorpage.png)
+
+## Video Demo Aplikasi
+[![Demo Aplikasi Portal Berita](https://youtu.be/4evYY8UREZs)](https://youtu.be/4evYY8UREZs)
