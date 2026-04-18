@@ -21,6 +21,12 @@ class NewsViewModel(private val repository: NewsRepository) : ViewModel() {
     private val _selectedArticle = MutableStateFlow<Article?>(null)
     val selectedArticle = _selectedArticle.asStateFlow()
 
+    private val _isBookmarked = MutableStateFlow(false)
+    val isBookmarked = _isBookmarked.asStateFlow()
+
+    private val _bookmarkedArticles = MutableStateFlow<List<Article>>(emptyList())
+    val bookmarkedArticles = _bookmarkedArticles.asStateFlow()
+
     init { fetchNews() }
 
     fun fetchNews() {
@@ -32,5 +38,25 @@ class NewsViewModel(private val repository: NewsRepository) : ViewModel() {
         }
     }
 
-    fun selectArticle(article: Article?) { _selectedArticle.value = article }
+    fun selectArticle(article: Article?) {
+        _selectedArticle.value = article
+        if (article != null) {
+            _isBookmarked.value = repository.isBookmarked(article.url)
+        }
+    }
+
+    fun toggleBookmark(article: Article) {
+        if (_isBookmarked.value) {
+            repository.removeBookmark(article.url)
+            _isBookmarked.value = false
+        } else {
+            repository.saveBookmark(article)
+            _isBookmarked.value = true
+        }
+        fetchBookmarks()
+    }
+
+    fun fetchBookmarks() {
+        _bookmarkedArticles.value = repository.getAllBookmarks()
+    }
 }

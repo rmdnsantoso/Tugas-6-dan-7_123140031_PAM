@@ -1,0 +1,20 @@
+CREATE TABLE BookmarkEntity (
+    url TEXT NOT NULL PRIMARY KEY,
+    title TEXT NOT NULL,
+    description TEXT,
+    urlToImage TEXT,
+    publishedAt TEXT NOT NULL
+);
+
+insertBookmark:
+INSERT OR REPLACE INTO BookmarkEntity(url, title, description, urlToImage, publishedAt)
+VALUES (?, ?, ?, ?, ?);
+
+selectAllBookmarks:
+SELECT * FROM BookmarkEntity;
+
+isBookmarked:
+SELECT count(*) FROM BookmarkEntity WHERE url = ?;
+
+deleteBookmark:
+DELETE FROM BookmarkEntity WHERE url = ?;

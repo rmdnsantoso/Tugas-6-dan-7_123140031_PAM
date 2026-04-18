@@ -1,5 +1,14 @@
 # Tugas 6 Networking dan REST API (Aplikasi Portal Berita) - Pemrograman Aplikasi Mobile
+***
 
+
+>Muhammad Romadhon Santoso 
+>
+>123140031 
+> 
+>Pemrograman Aplikasi Mobile RB
+
+***
 World in Bytes - Portal Berita Teknologi
 
 Aplikasi World in Bytes ini dibuat untuk menampilkan berita teknologi terbaru secara real-time dengan mengambil data langsung dari internet. Di dalam aplikasi ini, pengguna bisa melihat berita utama yang ditampilkan secara mencolok serta daftar berita lainnya yang disusun secara rapi. Pengguna juga dapat mengeklik setiap berita untuk membaca detail informasinya secara lengkap dan menggunakan fitur pembaruan data untuk memastikan informasi yang dibaca selalu yang paling baru.

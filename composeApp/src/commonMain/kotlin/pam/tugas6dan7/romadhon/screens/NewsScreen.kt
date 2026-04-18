@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -27,16 +28,19 @@ import pam.tugas6dan7.romadhon.viewmodel.NewsViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NewsScreen(viewModel: NewsViewModel, onNavigateToDetail: () -> Unit) {
+fun NewsScreen(viewModel: NewsViewModel, onNavigateToDetail: () -> Unit, onNavigateToBookmark: () -> Unit) {
     val uiState by viewModel.uiState.collectAsState()
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("World in Bytes", fontWeight = FontWeight.Bold) },
+                title = { Text("World in Bytes", fontWeight = FontWeight.ExtraBold) },
                 actions = {
+                    IconButton(onClick = onNavigateToBookmark) {
+                        Icon(Icons.Default.Bookmark, contentDescription = null)
+                    }
                     IconButton(onClick = { viewModel.fetchNews() }) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Refresh")
+                        Icon(Icons.Default.Refresh, contentDescription = null)
                     }
                 }
             )
@@ -60,15 +64,12 @@ fun NewsScreen(viewModel: NewsViewModel, onNavigateToDetail: () -> Unit) {
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         if (state.articles.isNotEmpty()) {
-                            // 1. HERO LAYOUT (Artikel Pertama / Index 0)
                             item {
                                 HeroArticleItem(article = state.articles[0]) {
                                     viewModel.selectArticle(state.articles[0])
                                     onNavigateToDetail()
                                 }
                             }
-
-                            // 2. REGULAR LAYOUT (Artikel sisanya)
                             items(state.articles.drop(1)) { article ->
                                 ArticleItem(article) {
                                     viewModel.selectArticle(article)
@@ -83,7 +84,6 @@ fun NewsScreen(viewModel: NewsViewModel, onNavigateToDetail: () -> Unit) {
     }
 }
 
-// Komponen Khusus Berita Utama (Hero)
 @Composable
 fun HeroArticleItem(article: Article, onClick: () -> Unit) {
     Card(
@@ -94,17 +94,15 @@ fun HeroArticleItem(article: Article, onClick: () -> Unit) {
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
     ) {
         Box(Modifier.fillMaxSize()) {
-            // Gambar Background Penuh
             article.urlToImage?.let {
                 KamelImage(
                     resource = asyncPainterResource(it),
-                    contentDescription = article.title,
+                    contentDescription = null,
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop
                 )
             }
 
-            // Efek Gradasi Hitam di bagian bawah agar teks terbaca jelas
             Box(
                 Modifier
                     .fillMaxSize()
@@ -116,7 +114,6 @@ fun HeroArticleItem(article: Article, onClick: () -> Unit) {
                     )
             )
 
-            // Teks Berita Utama di pojok kiri bawah
             Column(
                 Modifier
                     .align(Alignment.BottomStart)
@@ -136,7 +133,7 @@ fun HeroArticleItem(article: Article, onClick: () -> Unit) {
                 )
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    text = article.publishedAt.take(10), // Ambil tanggalnya saja
+                    text = article.publishedAt.take(10),
                     style = MaterialTheme.typography.labelMedium,
                     color = Color.LightGray
                 )
@@ -145,7 +142,6 @@ fun HeroArticleItem(article: Article, onClick: () -> Unit) {
     }
 }
 
-// Komponen Berita Biasa
 @Composable
 fun ArticleItem(article: Article, onClick: () -> Unit) {
     Card(
@@ -157,7 +153,7 @@ fun ArticleItem(article: Article, onClick: () -> Unit) {
             article.urlToImage?.let {
                 KamelImage(
                     resource = asyncPainterResource(it),
-                    contentDescription = article.title,
+                    contentDescription = null,
                     modifier = Modifier.height(180.dp).fillMaxWidth(),
                     contentScale = ContentScale.Crop
                 )
