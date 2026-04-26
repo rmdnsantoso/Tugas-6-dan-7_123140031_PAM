@@ -1,13 +1,17 @@
 package pam.tugas5.romadhon.screens
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
+import androidx.compose.foundation.lazy.staggeredgrid.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -23,13 +27,36 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
-import tugas5_pam_123140031.composeapp.generated.resources.Res
-import tugas5_pam_123140031.composeapp.generated.resources.foto_romadhon
+import org.koin.compose.koinInject
+import pam.tugas5.romadhon.BatteryInfo
+import pam.tugas5.romadhon.DeviceInfo
+import pam.tugas5.romadhon.NetworkMonitor
 import pam.tugas5.romadhon.database.NoteEntity
 import pam.tugas5.romadhon.database.SettingsManager
+import tugas5_pam_123140031.composeapp.generated.resources.Res
+import tugas5_pam_123140031.composeapp.generated.resources.foto_romadhon
 
 val TemaHijau = Color(0xFF2E7D32)
 val CardColors = listOf(0xFFE8F5E9, 0xFFC8E6C9, 0xFFA5D6A7, 0xFF81C784)
+
+@Composable
+fun NetworkStatusIndicator() {
+    val networkMonitor: NetworkMonitor = koinInject()
+    val isConnected by networkMonitor.observeConnectivity().collectAsState(initial = true)
+
+    AnimatedVisibility(visible = !isConnected) {
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            color = MaterialTheme.colorScheme.error
+        ) {
+            Row(modifier = Modifier.padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Filled.CloudOff, contentDescription = "Offline", tint = MaterialTheme.colorScheme.onError)
+                Spacer(Modifier.width(8.dp))
+                Text("Tidak ada koneksi internet", color = MaterialTheme.colorScheme.onError, fontWeight = FontWeight.Bold)
+            }
+        }
+    }
+}
 
 @Composable
 fun NoteListScreen(
@@ -53,13 +80,17 @@ fun NoteListScreen(
             FloatingActionButton(
                 onClick = onNavigateToAdd,
                 containerColor = TemaHijau,
-                contentColor = Color.White
+                contentColor = Color.White,
+                shape = RoundedCornerShape(16.dp)
             ) {
                 Icon(Icons.Filled.Add, contentDescription = null)
             }
         }
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+
+            NetworkStatusIndicator()
+
             Row(
                 modifier = Modifier.fillMaxWidth().padding(start = 20.dp, top = 20.dp, bottom = 8.dp, end = 16.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -90,47 +121,81 @@ fun NoteListScreen(
                 placeholder = { Text("Cari catatan kamu...", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)) },
                 leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null, tint = TemaHijau) },
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-                shape = RoundedCornerShape(24.dp),
+                shape = RoundedCornerShape(16.dp),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedContainerColor = MaterialTheme.colorScheme.surface,
                     unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                    focusedBorderColor = TemaHijau,
+                    focusedBorderColor = Color.Transparent,
+                    unfocusedBorderColor = Color.Transparent,
                     focusedTextColor = MaterialTheme.colorScheme.onSurface,
                     unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                 ),
                 singleLine = true
             )
 
-            LazyColumn(
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+            LazyVerticalStaggeredGrid(
+                columns = StaggeredGridCells.Fixed(2),
+                contentPadding = PaddingValues(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalItemSpacing = 12.dp,
+                modifier = Modifier.fillMaxSize()
             ) {
                 items(sortedNotes) { note ->
                     val isFavorite = note.is_favorite == 1L
 
                     Card(
-                        modifier = Modifier.fillMaxWidth().clickable { onNavigateToDetail(note.id) },
-                        elevation = CardDefaults.cardElevation(2.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onNavigateToDetail(note.id) },
+                        shape = RoundedCornerShape(16.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
                         colors = CardDefaults.cardColors(containerColor = Color(note.color.toInt()))
                     ) {
-                        Row(
-                            modifier = Modifier.padding(16.dp).fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically
+                        Column(
+                            modifier = Modifier.padding(16.dp).fillMaxWidth()
                         ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(text = note.title, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Color(0xFF1B5E20))
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(text = note.content, maxLines = 2, overflow = TextOverflow.Ellipsis, color = Color.DarkGray)
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text(text = note.date, fontSize = 12.sp, color = TemaHijau)
-                            }
-                            IconButton(
-                                onClick = { viewModel.toggleFavorite(note.id, note.is_favorite) }
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.Top
                             ) {
-                                Icon(
-                                    imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
-                                    contentDescription = null,
-                                    tint = if (isFavorite) Color.Red else TemaHijau
+                                Text(
+                                    text = note.title,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 18.sp,
+                                    color = Color(0xFF1B5E20),
+                                    modifier = Modifier.weight(1f)
+                                )
+                                IconButton(
+                                    onClick = { viewModel.toggleFavorite(note.id, note.is_favorite) },
+                                    modifier = Modifier.size(24.dp).padding(start = 4.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+                                        contentDescription = null,
+                                        tint = if (isFavorite) Color.Red else Color(0xFF1B5E20).copy(alpha = 0.5f),
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = note.content,
+                                maxLines = 4,
+                                overflow = TextOverflow.Ellipsis,
+                                color = Color.DarkGray,
+                                fontSize = 14.sp
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Surface(
+                                color = Color.White.copy(alpha = 0.4f),
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Text(
+                                    text = note.date,
+                                    fontSize = 11.sp,
+                                    color = Color(0xFF1B5E20),
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                                 )
                             }
                         }
@@ -163,24 +228,55 @@ fun FavoritesScreen(viewModel: NotesViewModel) {
                 }
             }
         } else {
-            LazyColumn(
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+            LazyVerticalStaggeredGrid(
+                columns = StaggeredGridCells.Fixed(2),
+                contentPadding = PaddingValues(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalItemSpacing = 12.dp,
+                modifier = Modifier.fillMaxSize()
             ) {
                 items(favoriteNotes) { note ->
                     Card(
                         modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
                         colors = CardDefaults.cardColors(containerColor = Color(note.color.toInt()))
                     ) {
-                        Row(modifier = Modifier.padding(16.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(text = note.title, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Color(0xFF1B5E20))
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(text = note.content, maxLines = 1, overflow = TextOverflow.Ellipsis, color = Color.DarkGray)
+                        Column(
+                            modifier = Modifier.padding(16.dp).fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.Top
+                            ) {
+                                Text(
+                                    text = note.title,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 18.sp,
+                                    color = Color(0xFF1B5E20),
+                                    modifier = Modifier.weight(1f)
+                                )
+                                IconButton(
+                                    onClick = { viewModel.toggleFavorite(note.id, note.is_favorite) },
+                                    modifier = Modifier.size(24.dp).padding(start = 4.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Filled.Favorite,
+                                        contentDescription = null,
+                                        tint = Color.Red,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
                             }
-                            IconButton(onClick = { viewModel.toggleFavorite(note.id, note.is_favorite) }) {
-                                Icon(Icons.Filled.Favorite, contentDescription = null, tint = Color.Red)
-                            }
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = note.content,
+                                maxLines = 4,
+                                overflow = TextOverflow.Ellipsis,
+                                color = Color.DarkGray,
+                                fontSize = 14.sp
+                            )
                         }
                     }
                 }
@@ -383,12 +479,15 @@ fun EditNoteScreen(noteId: Long, viewModel: NotesViewModel, onBack: () -> Unit) 
 @Composable
 fun SettingsScreen(
     settingsManager: SettingsManager,
-    onThemeChanged: (String) -> Unit, // Tambahan parameter dari App.kt
-    onSortChanged: (String) -> Unit,  // Tambahan parameter dari App.kt
+    onThemeChanged: (String) -> Unit,
+    onSortChanged: (String) -> Unit,
     onBack: () -> Unit
 ) {
     var selectedTheme by remember { mutableStateOf(settingsManager.theme) }
     var selectedSort by remember { mutableStateOf(settingsManager.sortOrder) }
+
+    val deviceInfo: DeviceInfo = koinInject()
+    val batteryInfo: BatteryInfo = koinInject()
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -401,7 +500,13 @@ fun SettingsScreen(
             )
         }
     ) { padding ->
-        Column(modifier = Modifier.padding(padding).padding(16.dp).fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .padding(padding)
+                .padding(16.dp)
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+        ) {
             Text("Tema Aplikasi", fontWeight = FontWeight.Bold, color = TemaHijau)
             listOf("Light", "Dark", "System").forEach { theme ->
                 Row(
@@ -409,7 +514,7 @@ fun SettingsScreen(
                     modifier = Modifier.fillMaxWidth().clickable {
                         selectedTheme = theme
                         settingsManager.theme = theme
-                        onThemeChanged(theme) // Langsung beri tahu layar utama!
+                        onThemeChanged(theme)
                     }.padding(vertical = 8.dp)
                 ) {
                     RadioButton(
@@ -417,7 +522,7 @@ fun SettingsScreen(
                         onClick = {
                             selectedTheme = theme
                             settingsManager.theme = theme
-                            onThemeChanged(theme) // Langsung beri tahu layar utama!
+                            onThemeChanged(theme)
                         },
                         colors = RadioButtonDefaults.colors(selectedColor = TemaHijau)
                     )
@@ -434,7 +539,7 @@ fun SettingsScreen(
                     modifier = Modifier.fillMaxWidth().clickable {
                         selectedSort = sort
                         settingsManager.sortOrder = sort
-                        onSortChanged(sort) // Langsung urutkan layar utama!
+                        onSortChanged(sort)
                     }.padding(vertical = 8.dp)
                 ) {
                     RadioButton(
@@ -442,13 +547,29 @@ fun SettingsScreen(
                         onClick = {
                             selectedSort = sort
                             settingsManager.sortOrder = sort
-                            onSortChanged(sort) // Langsung urutkan layar utama!
+                            onSortChanged(sort)
                         },
                         colors = RadioButtonDefaults.colors(selectedColor = TemaHijau)
                     )
                     Text(sort, color = MaterialTheme.colorScheme.onBackground)
                 }
             }
+
+            Spacer(modifier = Modifier.height(32.dp))
+            HorizontalDivider(color = TemaHijau.copy(alpha = 0.2f))
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text("Informasi Perangkat", fontWeight = FontWeight.Bold, color = TemaHijau)
+            Spacer(modifier = Modifier.height(12.dp))
+
+            ProfileInfoRow(icon = Icons.Filled.Smartphone, text = "Model: ${deviceInfo.getDeviceName()}")
+            ProfileInfoRow(icon = Icons.Filled.Memory, text = deviceInfo.getOsVersion())
+            ProfileInfoRow(icon = Icons.Filled.Info, text = "Versi Aplikasi: ${deviceInfo.getAppVersion()}")
+
+            val batteryStatusText = if (batteryInfo.isCharging()) "Sedang Mengisi Daya" else "Tidak Mengisi Daya"
+            ProfileInfoRow(icon = Icons.Filled.BatteryFull, text = "Baterai: ${batteryInfo.getBatteryLevel()}% ($batteryStatusText)")
+
+            Spacer(modifier = Modifier.height(32.dp))
         }
     }
 }

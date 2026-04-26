@@ -1,87 +1,69 @@
-# 📝 Catatan Romadhon - Notes App - Tugas 7 Pemrograman Aplikasi Mobile
+# Tugas 8: Platform-Specific Features
 
-Proyek ini adalah aplikasi catatan (Notes App) berbasis **Kotlin Multiplatform (KMP)** yang mengimplementasikan arsitektur *Offline-First*. Aplikasi ini dibangun untuk memenuhi kriteria evaluasi **Tugas 7 - Pemrograman Aplikasi Mobile**.
-
-## 👨‍💻 Dibuat oleh
-* **Nama:** Muhammad Romadhon Santoso
-* **NIM:** 123140031
-* **Kelas:** RB
+**Nama:** Muhammad Romadhon Santoso  
+**NIM:** 123140031  
+**Kelas:** Pemrograman Aplikasi Mobile RB
 
 ---
 
-## ✨ Fitur Utama
-✅ **1. Local Database & CRUD Operations (SQLDelight)**
-* Menyimpan catatan secara permanen menggunakan SQLite lokal.
-* Operasi lengkap: **Create** (tambah catatan), **Read** (tampil & detail), **Update** (edit teks), dan **Delete** (hapus data).
-* Menandai catatan sebagai Favorit (`is_favorite`).
+## 📌 Deskripsi Tugas
+Proyek ini merupakan kelanjutan dari aplikasi catatan (Notes App) dengan mengimplementasikan fitur spesifik platform (Android/iOS) menggunakan *Kotlin Multiplatform* (KMP) dan manajemen *Dependency Injection* (DI).
 
-✅ **2. Fitur Pencarian Real-Time (Search)**
-* Mencari catatan berdasarkan kata kunci secara langsung (*real-time*) berkat implementasi `StateFlow`.
-
-✅ **3. Pengaturan Preferensi (DataStore / Multiplatform Settings)**
-* **Tema Dinamis:** Mengubah tema aplikasi antara *Light*, *Dark*, dan *System Default* tanpa perlu *restart* aplikasi (Terintegrasi dengan Material 3 Color Scheme).
-* **Sorting:** Mengubah urutan daftar catatan (Terbaru, Terlama, atau A-Z).
-
-🚀 **4. BONUS: Sinkronisasi Remote API (Ktor Client)**
-* Mengambil data teks JSON dari API publik (`jsonplaceholder`) secara *asynchronous*.
-* Data yang di-*fetch* akan di-*parsing* dan langsung disuntikkan ke dalam *database* SQLite lokal.
-
-🛡️ **5. Arsitektur Offline-First**
-* Seluruh data disimpan secara lokal. Apabila pengguna menekan tombol *Sync API* saat tidak ada koneksi internet, aplikasi akan menangkap *exception* dengan aman dan tetap berfungsi normal 100% tanpa *Force Close*.
+### Fitur yang Diimplementasikan:
+1. **Koin Dependency Injection:** Menggunakan Koin untuk mengatur *dependency* aplikasi secara terpusat (`AppModule`), sehingga inisialisasi kelas tidak lagi dilakukan secara manual di UI.
+2. **Device Info (expect/actual):** Menampilkan informasi spesifik perangkat (Model, Versi OS, Versi Aplikasi) di halaman Pengaturan.
+3. **Network Monitor (expect/actual):** Mendeteksi koneksi internet secara *real-time* dan menampilkan *banner* peringatan jika perangkat dalam keadaan *offline*.
+4. **UI Revamp (Staggered Grid):** Mengubah tampilan daftar catatan menjadi *masonry grid* yang lebih modern dan dinamis.
+5. **⭐ BONUS: Battery Info (expect/actual):** Mendeteksi dan menampilkan status persentase baterai serta status pengisian daya (*charging/discharging*) di halaman Pengaturan.
 
 ---
 
-## 🛠️ Tech Stack & Library
+## 🏗️ Architecture Diagram
 
-* **Framework:** Kotlin Multiplatform (KMP) & Compose Multiplatform
-* **UI Toolkit:** Jetpack Compose (Material 3)
-* **Local Database:** SQLDelight (`app.cash.sqldelight:android-driver:2.0.1`)
-* **Preferences/DataStore:** Multiplatform Settings (`com.russhwolf:multiplatform-settings:1.1.1`)
-* **Network/API Client:** Ktor (`io.ktor:ktor-client-android:2.3.11`)
-* **Navigation:** Jetpack Navigation Compose
+Aplikasi ini menggunakan arsitektur **Kotlin Multiplatform (KMP)** dengan pola **Dependency Injection (Koin)**. Berikut adalah diagram interaksi antara modul `common` dan modul platform:
+
+```mermaid
+graph TD
+    subgraph commonMain
+        A[App.kt / UI Screens] --> B[NotesViewModel]
+        B --> C[NoteRepository]
+        B --> D[koinInject: DeviceInfo]
+        B --> E[koinInject: NetworkMonitor]
+        B --> F[koinInject: BatteryInfo]
+        G[AppModule.kt] -- Register --> D
+        G -- Register --> E
+        G -- Register --> F
+    end
+
+    subgraph androidMain
+        D -- actual --H[Android System API]
+        E -- actual --I[ConnectivityManager]
+        F -- actual --J[BatteryManager]
+    end
+
+    subgraph iosMain
+        D -- actual --K[iOS Foundation]
+        E -- actual --L[Network Framework]
+        F -- actual --M[UIDevice Battery]
+    end
+```
+---
+## 📸 Dokumentasi Tangkapan Layar (Screenshots)
+
+*Silakan ganti path gambar di bawah ini sesuai dengan nama file screenshot yang Anda unggah ke repositori.*
+
+### 1. Network Status Indicator
+*(Menampilkan banner peringatan saat tidak ada koneksi internet)*
+![Network Offline Indicator](networkmonitor.png)
+
+### 2. Device & Battery Info di Settings Screen
+*(Menampilkan detail Model HP, OS, dan Status Baterai)*
+![Device Info Settings](infoperangkat.png)
 
 ---
+## 🎥 Video Demonstrasi
 
+Video di bawah ini mendemonstrasikan fungsionalitas Koin DI, deteksi jaringan secara *real-time*, pengambilan data perangkat, serta fitur bonus deteksi baterai.
 
-## 🗄️ Skema Database (SQLDelight)
+▶️ **[Tonton Video Demonstrasi Tugas 8 di YouTube]([https://youtu.be/Fhy1x0eqJHI])**
 
-Berikut adalah struktur tabel `NoteEntity` yang digunakan di dalam file `Note.sq`:
-
-```sql
-CREATE TABLE NoteEntity (
-    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-    title TEXT NOT NULL,
-    content TEXT NOT NULL,
-    date TEXT NOT NULL,
-    color INTEGER NOT NULL,
-    is_favorite INTEGER NOT NULL DEFAULT 0
-);
-
--- Queries
-insertNote:
-INSERT INTO NoteEntity(title, content, date, color, is_favorite)
-VALUES (?, ?, ?, ?, ?);
-
-getAllNotes:
-SELECT * FROM NoteEntity ORDER BY id DESC;
-
-deleteNoteById:
-DELETE FROM NoteEntity WHERE id = ?;
-
-updateNote:
-UPDATE NoteEntity SET title = ?, content = ? WHERE id = ?;
-
-updateFavorite:
-UPDATE NoteEntity SET is_favorite = ? WHERE id = ?;
-``` 
----
-## 📸 Dokumentasi (Screenshot & Video)
-🎥 **[Tonton Video Demo Tugas 7 di Sini](https://youtu.be/Z2TAqCheMLY)**
-
-### Screenshot Aplikasi
-![Halaman Utama](halamanutama.png)
-![Data Store](datastore.png)
-![Halaman Favorit](favorite.png)
-![Halaman Profile](profile.png)
-
----
