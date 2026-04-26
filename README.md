@@ -36,34 +36,13 @@ graph TD
     end
 
     subgraph androidMain
-        D -- actual --H[Android System API]
-        E -- actual --I[ConnectivityManager]
-        F -- actual --J[BatteryManager]
+        D -- actual --> H[Android System API]
+        E -- actual --> I[ConnectivityManager]
+        F -- actual --> J[BatteryManager]
     end
 
     subgraph iosMain
-        D -- actual --K[iOS Foundation]
-        E -- actual --L[Network Framework]
-        F -- actual --M[UIDevice Battery]
+        D -- actual --> K[iOS Foundation]
+        E -- actual --> L[Network Framework]
+        F -- actual --> M[UIDevice Battery]
     end
-```
----
-## 📸 Dokumentasi Tangkapan Layar (Screenshots)
-
-*Silakan ganti path gambar di bawah ini sesuai dengan nama file screenshot yang Anda unggah ke repositori.*
-
-### 1. Network Status Indicator
-*(Menampilkan banner peringatan saat tidak ada koneksi internet)*
-![Network Offline Indicator](networkmonitor.png)
-
-### 2. Device & Battery Info di Settings Screen
-*(Menampilkan detail Model HP, OS, dan Status Baterai)*
-![Device Info Settings](infoperangkat.png)
-
----
-## 🎥 Video Demonstrasi
-
-Video di bawah ini mendemonstrasikan fungsionalitas Koin DI, deteksi jaringan secara *real-time*, pengambilan data perangkat, serta fitur bonus deteksi baterai.
-
-▶️ **[Tonton Video Demonstrasi Tugas 8 di YouTube]([https://youtu.be/Fhy1x0eqJHI])**
-
