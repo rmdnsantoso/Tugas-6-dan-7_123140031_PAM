@@ -33,6 +33,8 @@ import pam.tugas5.romadhon.DeviceInfo
 import pam.tugas5.romadhon.NetworkMonitor
 import pam.tugas5.romadhon.database.NoteEntity
 import pam.tugas5.romadhon.database.SettingsManager
+import pam.tugas5.romadhon.rememberImagePickerLauncher
+import pam.tugas5.romadhon.rememberCameraLauncher
 import tugas5_pam_123140031.composeapp.generated.resources.Res
 import tugas5_pam_123140031.composeapp.generated.resources.foto_romadhon
 
@@ -50,7 +52,7 @@ fun NetworkStatusIndicator() {
             color = MaterialTheme.colorScheme.error
         ) {
             Row(modifier = Modifier.padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Filled.CloudOff, contentDescription = "Offline", tint = MaterialTheme.colorScheme.onError)
+                Icon(Icons.Filled.CloudOff, contentDescription = null, tint = MaterialTheme.colorScheme.onError)
                 Spacer(Modifier.width(8.dp))
                 Text("Tidak ada koneksi internet", color = MaterialTheme.colorScheme.onError, fontWeight = FontWeight.Bold)
             }
@@ -364,6 +366,25 @@ fun NoteDetailScreen(noteId: Long, viewModel: NotesViewModel, onNavigateToEdit: 
 fun AddNoteScreen(viewModel: NotesViewModel, onBack: () -> Unit) {
     var title by remember { mutableStateOf("") }
     var content by remember { mutableStateOf("") }
+    val isAiLoading by viewModel.isAiLoading.collectAsState()
+
+    val launchGallery = rememberImagePickerLauncher { base64Image ->
+        if (base64Image != null) {
+            viewModel.scanImageToNote(base64Image) { resultTitle, resultContent ->
+                title = resultTitle
+                content = resultContent
+            }
+        }
+    }
+
+    val launchCamera = rememberCameraLauncher { base64Image ->
+        if (base64Image != null) {
+            viewModel.scanImageToNote(base64Image) { resultTitle, resultContent ->
+                title = resultTitle
+                content = resultContent
+            }
+        }
+    }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -372,6 +393,24 @@ fun AddNoteScreen(viewModel: NotesViewModel, onBack: () -> Unit) {
             TopAppBar(
                 title = { Text("Baru", color = Color.White) },
                 navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.Filled.ArrowBack, null, tint = Color.White) } },
+                actions = {
+                    if (isAiLoading) {
+                        IconButton(onClick = {}, enabled = false) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                color = Color.White,
+                                strokeWidth = 2.dp
+                            )
+                        }
+                    } else {
+                        IconButton(onClick = { launchCamera() }) {
+                            Icon(Icons.Filled.CameraAlt, contentDescription = "Buka Kamera", tint = Color.White)
+                        }
+                        IconButton(onClick = { launchGallery() }) {
+                            Icon(Icons.Filled.Image, contentDescription = "Buka Galeri", tint = Color.White)
+                        }
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = TemaHijau)
             )
         }
@@ -404,7 +443,7 @@ fun AddNoteScreen(viewModel: NotesViewModel, onBack: () -> Unit) {
             Button(
                 onClick = {
                     val randomColor = CardColors.random()
-                    viewModel.addNote(title, content, "April 2026", randomColor)
+                    viewModel.addNote(title, content, "Mei 2026", randomColor)
                     onBack()
                 },
                 modifier = Modifier.fillMaxWidth().height(50.dp),
