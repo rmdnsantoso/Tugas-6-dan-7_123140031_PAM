@@ -21,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -40,6 +41,18 @@ import tugas5_pam_123140031.composeapp.generated.resources.foto_romadhon
 
 val TemaHijau = Color(0xFF2E7D32)
 val CardColors = listOf(0xFFE8F5E9, 0xFFC8E6C9, 0xFFA5D6A7, 0xFF81C784)
+
+// Objek TestTags untuk UI Testing
+object TestTags {
+    const val EMPTY_STATE = "empty_state"
+    const val NOTES_LIST = "notes_list"
+    const val NOTE_ITEM = "note_item"
+    const val FAB_ADD = "fab_add"
+    const val SEARCH_INPUT = "search_input"
+    const val TITLE_INPUT = "title_input"
+    const val CONTENT_INPUT = "content_input"
+    const val ADD_BUTTON = "add_button"
+}
 
 @Composable
 fun NetworkStatusIndicator() {
@@ -83,7 +96,8 @@ fun NoteListScreen(
                 onClick = onNavigateToAdd,
                 containerColor = TemaHijau,
                 contentColor = Color.White,
-                shape = RoundedCornerShape(16.dp)
+                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier.testTag(TestTags.FAB_ADD)
             ) {
                 Icon(Icons.Filled.Add, contentDescription = null)
             }
@@ -122,7 +136,10 @@ fun NoteListScreen(
                 onValueChange = { viewModel.updateSearchQuery(it) },
                 placeholder = { Text("Cari catatan kamu...", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)) },
                 leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null, tint = TemaHijau) },
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .testTag(TestTags.SEARCH_INPUT),
                 shape = RoundedCornerShape(16.dp),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedContainerColor = MaterialTheme.colorScheme.surface,
@@ -135,70 +152,84 @@ fun NoteListScreen(
                 singleLine = true
             )
 
-            LazyVerticalStaggeredGrid(
-                columns = StaggeredGridCells.Fixed(2),
-                contentPadding = PaddingValues(16.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalItemSpacing = 12.dp,
-                modifier = Modifier.fillMaxSize()
-            ) {
-                items(sortedNotes) { note ->
-                    val isFavorite = note.is_favorite == 1L
+            if (sortedNotes.isEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxSize().weight(1f).testTag(TestTags.EMPTY_STATE),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Catatan masih kosong",
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                        fontSize = 18.sp
+                    )
+                }
+            } else {
+                LazyVerticalStaggeredGrid(
+                    columns = StaggeredGridCells.Fixed(2),
+                    contentPadding = PaddingValues(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalItemSpacing = 12.dp,
+                    modifier = Modifier.fillMaxSize().testTag(TestTags.NOTES_LIST)
+                ) {
+                    items(sortedNotes) { note ->
+                        val isFavorite = note.is_favorite == 1L
 
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onNavigateToDetail(note.id) },
-                        shape = RoundedCornerShape(16.dp),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color(note.color.toInt()))
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(16.dp).fillMaxWidth()
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onNavigateToDetail(note.id) }
+                                .testTag(TestTags.NOTE_ITEM),
+                            shape = RoundedCornerShape(16.dp),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color(note.color.toInt()))
                         ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.Top
+                            Column(
+                                modifier = Modifier.padding(16.dp).fillMaxWidth()
                             ) {
-                                Text(
-                                    text = note.title,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 18.sp,
-                                    color = Color(0xFF1B5E20),
-                                    modifier = Modifier.weight(1f)
-                                )
-                                IconButton(
-                                    onClick = { viewModel.toggleFavorite(note.id, note.is_favorite) },
-                                    modifier = Modifier.size(24.dp).padding(start = 4.dp)
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.Top
                                 ) {
-                                    Icon(
-                                        imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
-                                        contentDescription = null,
-                                        tint = if (isFavorite) Color.Red else Color(0xFF1B5E20).copy(alpha = 0.5f),
-                                        modifier = Modifier.size(20.dp)
+                                    Text(
+                                        text = note.title,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 18.sp,
+                                        color = Color(0xFF1B5E20),
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    IconButton(
+                                        onClick = { viewModel.toggleFavorite(note.id, note.is_favorite) },
+                                        modifier = Modifier.size(24.dp).padding(start = 4.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+                                            contentDescription = null,
+                                            tint = if (isFavorite) Color.Red else Color(0xFF1B5E20).copy(alpha = 0.5f),
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    }
+                                }
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = note.content,
+                                    maxLines = 4,
+                                    overflow = TextOverflow.Ellipsis,
+                                    color = Color.DarkGray,
+                                    fontSize = 14.sp
+                                )
+                                Spacer(modifier = Modifier.height(12.dp))
+                                Surface(
+                                    color = Color.White.copy(alpha = 0.4f),
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
+                                    Text(
+                                        text = note.date,
+                                        fontSize = 11.sp,
+                                        color = Color(0xFF1B5E20),
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                                     )
                                 }
-                            }
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = note.content,
-                                maxLines = 4,
-                                overflow = TextOverflow.Ellipsis,
-                                color = Color.DarkGray,
-                                fontSize = 14.sp
-                            )
-                            Spacer(modifier = Modifier.height(12.dp))
-                            Surface(
-                                color = Color.White.copy(alpha = 0.4f),
-                                shape = RoundedCornerShape(8.dp)
-                            ) {
-                                Text(
-                                    text = note.date,
-                                    fontSize = 11.sp,
-                                    color = Color(0xFF1B5E20),
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                                )
                             }
                         }
                     }
@@ -419,7 +450,7 @@ fun AddNoteScreen(viewModel: NotesViewModel, onBack: () -> Unit) {
             OutlinedTextField(
                 value = title, onValueChange = { title = it },
                 label = { Text("Judul") },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().testTag(TestTags.TITLE_INPUT),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = TemaHijau,
                     focusedLabelColor = TemaHijau,
@@ -431,7 +462,7 @@ fun AddNoteScreen(viewModel: NotesViewModel, onBack: () -> Unit) {
             OutlinedTextField(
                 value = content, onValueChange = { content = it },
                 label = { Text("Isi") },
-                modifier = Modifier.fillMaxWidth().weight(1f),
+                modifier = Modifier.fillMaxWidth().weight(1f).testTag(TestTags.CONTENT_INPUT),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = TemaHijau,
                     focusedLabelColor = TemaHijau,
@@ -446,7 +477,7 @@ fun AddNoteScreen(viewModel: NotesViewModel, onBack: () -> Unit) {
                     viewModel.addNote(title, content, "Mei 2026", randomColor)
                     onBack()
                 },
-                modifier = Modifier.fillMaxWidth().height(50.dp),
+                modifier = Modifier.fillMaxWidth().height(50.dp).testTag(TestTags.ADD_BUTTON),
                 colors = ButtonDefaults.buttonColors(containerColor = TemaHijau),
                 enabled = title.isNotBlank() && content.isNotBlank()
             ) {

@@ -16,7 +16,7 @@ import pam.tugas5.romadhon.database.SettingsManager
 import pam.tugas5.romadhon.repository.NoteRepository
 import pam.tugas5.romadhon.screens.NotesViewModel
 
-fun appModule(driverFactory: DatabaseDriverFactory) = module {
+fun dataModule(driverFactory: DatabaseDriverFactory) = module {
     single {
         HttpClient {
             install(ContentNegotiation) {
@@ -37,5 +37,13 @@ fun appModule(driverFactory: DatabaseDriverFactory) = module {
     single { NetworkMonitor() }
     single { BatteryInfo() }
     single { GeminiService(get()) }
-    single { NotesViewModel(get(), get()) }
 }
+
+val viewModelModule = module {
+    factory { NotesViewModel(get(), get()) }
+}
+
+fun appModule(driverFactory: DatabaseDriverFactory) = listOf(
+    dataModule(driverFactory),
+    viewModelModule
+)

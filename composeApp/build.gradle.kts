@@ -79,8 +79,26 @@ kotlin {
             implementation("io.insert-koin:koin-core:3.5.3")
             implementation("io.insert-koin:koin-compose:1.1.2")
         }
+
         commonTest.dependencies {
             implementation(libs.kotlin.test)
+            implementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
+            implementation("app.cash.turbine:turbine:1.0.0")
+            implementation("io.insert-koin:koin-test:3.5.3")
+        }
+
+        val androidUnitTest by getting {
+            dependencies {
+                implementation("io.mockk:mockk:1.13.9")
+            }
+        }
+
+        val androidInstrumentedTest by getting {
+            dependencies {
+                implementation("androidx.compose.ui:ui-test-junit4:1.6.0")
+                implementation("io.mockk:mockk-android:1.13.9")
+                implementation("androidx.test:runner:1.5.2")
+            }
         }
     }
 }
@@ -97,6 +115,8 @@ android {
         versionName = "1.0"
 
         buildConfigField("String", "GEMINI_API_KEY", "\"${localProps.getProperty("GEMINI_API_KEY", "")}\"")
+
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildFeatures {
@@ -106,6 +126,10 @@ android {
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
+            excludes += "META-INF/LICENSE.md"
+            excludes += "META-INF/LICENSE-notice.md"
+            excludes += "META-INF/LICENSE"
+            excludes += "META-INF/LICENSE.txt"
         }
     }
     buildTypes {
@@ -121,6 +145,7 @@ android {
 
 dependencies {
     debugImplementation(libs.compose.uiTooling)
+    debugImplementation("androidx.compose.ui:ui-test-manifest:1.6.0")
 }
 
 sqldelight {
